@@ -139,8 +139,8 @@ def obtener_productos(driver: WebDriver, paginacion: bool = True, paginas: Union
             productos_pagina.append({
                 "nombre": nombre,
                 "precio": precio,
-                "calificacion": calificacion,
-                "opiniones": opiniones
+                "rating": calificacion,
+                "reviews": opiniones
             })
         return productos_pagina
     # Detectar paginación
