@@ -1,0 +1,6 @@
+venv/
+*.pyc
+__pycache__/
+products.csv
+analysis.txt
+ai_summary.md
