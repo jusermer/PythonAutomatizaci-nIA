@@ -4,27 +4,38 @@ from selenium.webdriver.support import expected_conditions as EC
 from scraper.navegador import TIEMPO_ESPERA
 
 from typing import List, Any
-def selenium_wait_and_read(driver, selector: str, by: Any = By.CSS_SELECTOR, timeout: int = TIEMPO_ESPERA) -> List[Any]:
+def esperar_y_leer_elementos(driver, selector: str, por: Any = By.CSS_SELECTOR, tiempo_espera: int = TIEMPO_ESPERA) -> List[Any]:
     """
-    Espera a que los elementos estén presentes y luego los lee.
-    Args:
-        driver: Selenium WebDriver
-        selector: Selector CSS o By
-        by: Tipo de selector (por defecto By.CSS_SELECTOR)
-        timeout: Tiempo de espera
-    Returns:
-        Lista de elementos encontrados
+    Espera a que los elementos estén presentes en el DOM y luego los devuelve.
+
+    Uso:
+        Esta función es útil para garantizar que los elementos requeridos por el scraper
+        estén disponibles antes de interactuar con ellos, evitando errores de sincronización.
+
+    Parámetros:
+        driver (Selenium WebDriver): Instancia del navegador.
+        selector (str): Selector CSS o tipo By para localizar los elementos.
+        por (Any): Tipo de selector (por defecto By.CSS_SELECTOR).
+        tiempo_espera (int): Tiempo máximo de espera en segundos.
+
+    Retorno:
+        List[Any]: Lista de elementos encontrados.
+
+    Ejemplo:
+        elementos = esperar_y_leer_elementos(driver, "div.producto", By.CSS_SELECTOR, 10)
     """
-    wait = WebDriverWait(driver, timeout)
-    wait.until(EC.presence_of_all_elements_located((by, selector)))
-    return driver.find_elements(by, selector)
+    # Espera explícita hasta que los elementos estén presentes en el DOM
+    espera = WebDriverWait(driver, tiempo_espera)
+    espera.until(EC.presence_of_all_elements_located((por, selector)))
+    # Devuelve la lista de elementos encontrados
+    return driver.find_elements(por, selector)
 from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException
 from scraper.navegador import TIEMPO_ESPERA, BASE_URL
 import logging
 logger = logging.getLogger(__name__)
 
 from typing import Optional, Set, Union
-def parse_paginas(paginas: Union[str, list, None]) -> Optional[Set[int]]:
+def interpretar_paginas(paginas: Union[str, list, None]) -> Optional[Set[int]]:
     """
     Convierte expresiones de páginas a un conjunto de enteros.
 
@@ -41,26 +52,26 @@ def parse_paginas(paginas: Union[str, list, None]) -> Optional[Set[int]]:
         return None
     if isinstance(paginas, (list, tuple, set)):
         return set(int(p) for p in paginas)
-    txt = str(paginas).strip()
-    paginas_set = set()
-    for chunk in txt.split(","):
-        chunk = chunk.strip()
-        if not chunk:
+    texto = str(paginas).strip()
+    conjunto_paginas = set()
+    for fragmento in texto.split(","):
+        fragmento = fragmento.strip()
+        if not fragmento:
             continue
-        if "-" in chunk:
+        if "-" in fragmento:
             try:
-                start, end = chunk.split("-", 1)
-                start_n = int(start.strip())
-                end_n = int(end.strip())
-                paginas_set.update(range(start_n, end_n + 1))
+                inicio, fin = fragmento.split("-", 1)
+                inicio_n = int(inicio.strip())
+                fin_n = int(fin.strip())
+                conjunto_paginas.update(range(inicio_n, fin_n + 1))
             except ValueError:
                 continue
         else:
             try:
-                paginas_set.add(int(chunk))
+                conjunto_paginas.add(int(fragmento))
             except ValueError:
                 continue
-    return paginas_set
+    return conjunto_paginas
 
 def paginacion_url(base_url: str, page_number: int) -> str:
     """
@@ -107,46 +118,46 @@ def obtener_productos(driver: WebDriver, paginacion: bool = True, paginas: Union
         list[dict]: Lista de productos extraídos.
     """
     productos = []
-    def scrape_actual():
+    def extraer_actual():
         try:
-            items = selenium_wait_and_read(driver, "thumbnail", By.CLASS_NAME, TIEMPO_ESPERA)
+            elementos = esperar_y_leer_elementos(driver, "thumbnail", By.CLASS_NAME, TIEMPO_ESPERA)
         except TimeoutException:
             logger.warning("No se encontraron productos en la página")
             return []
         logger.info(f"URL actual: {driver.current_url}")
-        logger.info(f"Cantidad de productos en la página: {len(items)}")
-        pagina_productos = []
-        for item in items:
-            nombre = item.find_element(By.CLASS_NAME, "title").text.strip()
-            precio = item.find_element(By.CLASS_NAME, "price").text.strip()
+        logger.info(f"Cantidad de productos en la página: {len(elementos)}")
+        productos_pagina = []
+        for elemento in elementos:
+            nombre = elemento.find_element(By.CLASS_NAME, "title").text.strip()
+            precio = elemento.find_element(By.CLASS_NAME, "price").text.strip()
             try:
-                rating_raw = item.find_element(By.CSS_SELECTOR, "p[data-rating]").get_attribute("data-rating")
+                calificacion_raw = elemento.find_element(By.CSS_SELECTOR, "p[data-rating]").get_attribute("data-rating")
             except NoSuchElementException:
-                rating_raw = "0"
-            rating = int(rating_raw) if rating_raw else 0
-            reviews = item.find_element(By.CLASS_NAME, "review-count").text.strip()
-            pagina_productos.append({
+                calificacion_raw = "0"
+            calificacion = int(calificacion_raw) if calificacion_raw else 0
+            opiniones = elemento.find_element(By.CLASS_NAME, "review-count").text.strip()
+            productos_pagina.append({
                 "nombre": nombre,
                 "precio": precio,
-                "rating": rating,
-                "reviews": reviews
+                "calificacion": calificacion,
+                "opiniones": opiniones
             })
-        return pagina_productos
+        return productos_pagina
     # Detectar paginación
-    paginacion_links = driver.find_elements(By.CSS_SELECTOR, "ul.pagination a")
-    logger.info(f"Links de paginación encontrados: {[link.get_attribute('href') for link in paginacion_links]}")
+    enlaces_paginacion = driver.find_elements(By.CSS_SELECTOR, "ul.pagination a")
+    logger.info(f"Enlaces de paginación encontrados: {[enlace.get_attribute('href') for enlace in enlaces_paginacion]}")
     paginas_disponibles = set()
-    for link in paginacion_links:
-        texto = link.text.strip()
+    for enlace in enlaces_paginacion:
+        texto = enlace.text.strip()
         if texto.isdigit():
             paginas_disponibles.add(int(texto))
     if not paginas_disponibles:
-        productos.extend(scrape_actual())
+        productos.extend(extraer_actual())
         return productos
 
     # Si se pasan páginas específicas, solo recorre esas
     if paginas:
-        paginas_a_visitar = parse_paginas(paginas)
+        paginas_a_visitar = interpretar_paginas(paginas)
         paginas_validas = set()
         if 1 in paginas_a_visitar:
             paginas_validas.add(1)
@@ -155,50 +166,50 @@ def obtener_productos(driver: WebDriver, paginacion: bool = True, paginas: Union
         if not paginas_validas:
             logger.warning("Ninguna de las páginas seleccionadas existe en la paginación.")
             return productos
-        base_url = driver.current_url
+        url_base = driver.current_url
         for pagina in paginas_validas:
             logger.info(f"Procesando página: {pagina}")
-            target_url = paginacion_url(base_url, pagina)
+            url_destino = paginacion_url(url_base, pagina)
             # Para la página 1, no es necesario cambiar de URL si ya estamos en la base
             if pagina == 1:
                 logger.info(f"Extrayendo información de la página {pagina}")
-                page_products = scrape_actual()
+                productos_pagina = extraer_actual()
             else:
-                if driver.current_url != target_url:
+                if driver.current_url != url_destino:
                     try:
-                        driver.get(target_url)
+                        driver.get(url_destino)
                     except WebDriverException as e:
-                        logger.warning(f"No se pudo cargar la página {pagina} ({target_url}): {e}")
+                        logger.warning(f"No se pudo cargar la página {pagina} ({url_destino}): {e}")
                         break
                 logger.info(f"Extrayendo información de la página {pagina}")
-                page_products = scrape_actual()
-            if not page_products:
+                productos_pagina = extraer_actual()
+            if not productos_pagina:
                 logger.warning(f"No se encontraron productos en la página {pagina}. Se detiene la extracción de páginas.")
                 break
-            productos.extend(page_products)
+            productos.extend(productos_pagina)
         return productos
 
     # Si no se pasan páginas, recorre toda la paginación automática
     while True:
-        productos.extend(scrape_actual())
-        next_links = driver.find_elements(By.CSS_SELECTOR, "a.page-link.next")
-        if not next_links:
+        productos.extend(extraer_actual())
+        enlaces_siguiente = driver.find_elements(By.CSS_SELECTOR, "a.page-link.next")
+        if not enlaces_siguiente:
             break
-        next_link = next_links[0]
-        if "disabled" in next_link.get_attribute("class"):
+        enlace_siguiente = enlaces_siguiente[0]
+        if "disabled" in enlace_siguiente.get_attribute("class"):
             break
-        href = next_link.get_attribute("href")
+        href = enlace_siguiente.get_attribute("href")
         if not href:
             break
-        prev_url = driver.current_url
-        wait = WebDriverWait(driver, TIEMPO_ESPERA)
+        url_anterior = driver.current_url
+        espera = WebDriverWait(driver, TIEMPO_ESPERA)
         try:
-            next_link.click()
-            wait.until(EC.url_changes(prev_url))
+            enlace_siguiente.click()
+            espera.until(EC.url_changes(url_anterior))
         except WebDriverException:
-            logger.warning("No se pudo hacer click en 'Siguiente', navegando por href en su lugar")
+            logger.warning("No se pudo hacer clic en 'Siguiente', navegando por href en su lugar")
             driver.get(href)
-            wait.until(EC.url_changes(prev_url))
+            espera.until(EC.url_changes(url_anterior))
     return productos
 # Dependencias para navegación
 from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException
@@ -248,44 +259,44 @@ def _encontrar_link_elemento(driver, href):
             continue
     return None
 
-def navigate_to_href(driver, href, reset_fn=None, prefer_click=True):
+def navegar_a_enlace(driver, href, reset_fn=None, prefer_click=True):
     if not href:
         return False
-    normalizado = _normalizar_href(href)
-    if not normalizado:
+    enlace_normalizado = _normalizar_href(href)
+    if not enlace_normalizado:
         return False
-    def _normalizar_url(u):
-        parsed = urlparse(u)
-        return parsed.path + ("?" + parsed.query if parsed.query else "")
-    target_abs = _resolver_href(driver.current_url, normalizado)
-    if target_abs:
-        current_norm = _normalizar_url(driver.current_url)
-        target_norm = _normalizar_url(target_abs)
-        if current_norm == target_norm:
+    def _normalizar_url_actual(url):
+        partes = urlparse(url)
+        return partes.path + ("?" + partes.query if partes.query else "")
+    enlace_absoluto = _resolver_href(driver.current_url, enlace_normalizado)
+    if enlace_absoluto:
+        actual_normalizado = _normalizar_url_actual(driver.current_url)
+        destino_normalizado = _normalizar_url_actual(enlace_absoluto)
+        if actual_normalizado == destino_normalizado:
             return True
-    el = _encontrar_link_elemento(driver, normalizado)
-    if el and prefer_click:
+    elemento = _encontrar_link_elemento(driver, enlace_normalizado)
+    if elemento and prefer_click:
         try:
-            el.click()
+            elemento.click()
             return True
         except WebDriverException:
-            logger.debug("Click falló, se intentará navegar por href")
+            logger.debug("El clic falló, se intentará navegar por el enlace directamente")
     if reset_fn:
         reset_fn()
-        el = _encontrar_link_elemento(driver, normalizado)
-        if el and prefer_click:
+        elemento = _encontrar_link_elemento(driver, enlace_normalizado)
+        if elemento and prefer_click:
             try:
-                el.click()
+                elemento.click()
                 return True
             except WebDriverException:
-                logger.debug("Click falló tras reset, se intentará navegar por href")
-    abs_url = _resolver_href(driver.current_url, normalizado)
-    if abs_url:
+                logger.debug("El clic falló tras reinicio, se intentará navegar por el enlace directamente")
+    enlace_absoluto_final = _resolver_href(driver.current_url, enlace_normalizado)
+    if enlace_absoluto_final:
         try:
-            driver.get(abs_url)
+            driver.get(enlace_absoluto_final)
             return True
         except WebDriverException:
-            logger.warning(f"No se pudo navegar a {abs_url}")
+            logger.warning(f"No se pudo navegar a {enlace_absoluto_final}")
     return False
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -296,7 +307,7 @@ from .navegador import TIEMPO_ESPERA
 
 def obtener_hrefs(driver, css_selector, wait_selector=None):
     wait_selector = wait_selector or css_selector
-    elementos = selenium_wait_and_read(driver, wait_selector, By.CSS_SELECTOR, TIEMPO_ESPERA)
+    elementos = esperar_y_leer_elementos(driver, wait_selector, By.CSS_SELECTOR, TIEMPO_ESPERA)
     urls_finales = []
     for el in elementos:
         href = el.get_attribute("href")
@@ -331,15 +342,16 @@ def obtener_links(driver, categorias=None):
         subcategorias = driver.find_elements(By.CSS_SELECTOR, ".subcategory-link, .category-link")
         for sub in subcategorias:
             sub_href = sub.get_attribute("href")
-            if sub_href and "allinone" in sub_href:
-                # Solo agregar subcategorías si pertenecen a la categoría principal
-                if categorias:
-                    parsed_sub = urlparse(sub_href)
-                    parent_segment = parsed.path.strip("/").split("/")[-1].lower()
-                    sub_segments = parsed_sub.path.strip("/").split("/")
-                    if parent_segment not in sub_segments:
-                        continue
-                urls_finales.append(sub_href)
+            if not sub_href:
+                continue
+            # Si hay filtro de categorías, solo agregar subcategorías que pertenezcan a la principal
+            if categorias:
+                parsed_sub = urlparse(sub_href)
+                parent_segment = parsed.path.strip("/").split("/")[-1].lower()
+                sub_segments = parsed_sub.path.strip("/").split("/")
+                if parent_segment not in sub_segments:
+                    continue
+            urls_finales.append(sub_href)
     return list(dict.fromkeys(urls_finales))
 
 def obtener_sublinks(driver):

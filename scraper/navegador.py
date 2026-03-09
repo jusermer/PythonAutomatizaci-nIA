@@ -4,8 +4,11 @@ from selenium import webdriver
 BASE_URL = "https://webscraper.io/test-sites/e-commerce/static"
 TIEMPO_ESPERA = 10
 
+ # Configuración global de logging para el módulo
+ # El formato incluye fecha, nivel y mensaje
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+ # El logger permite registrar información, advertencias y errores contextualizados por módulo
 
 from selenium.webdriver.chrome.options import Options
 
