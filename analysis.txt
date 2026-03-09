@@ -1,6 +1,6 @@
-Total de productos: 147
-Precio promedio: $781.48
+Total de productos: 38
+Precio promedio: $513.54
 Top 3 productos destacados:
-- Dell Latitude... | 4 | 14 reviews | $1133.82
-- Lenovo ThinkPa... | 4 | 14 reviews | $1096.02
 - Dell Vostro 15 | 4 | 14 reviews | $488.78
+- Asus MeMO Pad | 4 | 14 reviews | $102.99
+- Galaxy Note | 4 | 12 reviews | $399.99

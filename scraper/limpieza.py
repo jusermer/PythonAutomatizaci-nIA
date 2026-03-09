@@ -3,10 +3,20 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def refinar_data(productos):
+from typing import List, Dict
+def refinar_data(productos: List[Dict]) -> List[Dict]:
     """
-    Limpia y transforma la lista de productos, convirtiendo precios a float, ratings y reviews a int.
-    Elimina duplicados y retorna una lista de productos refinados.
+    Limpia y transforma la lista de productos extraídos del scraping.
+
+    Propósito:
+        - Convierte los valores de precio a float, rating y reviews a int.
+        - Elimina productos duplicados (por nombre, precio, rating y reviews).
+    
+    Parámetros:
+        productos (list[dict]): Lista de productos, cada uno con las claves 'nombre', 'precio', 'rating', 'reviews'.
+
+    Retorno:
+        list[dict]: Lista de productos refinados, sin duplicados y con tipos correctos.
     """
     if not productos:
         logger.warning("Lista de productos vacía")

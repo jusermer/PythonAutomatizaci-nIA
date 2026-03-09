@@ -6,6 +6,17 @@ logger = logging.getLogger(__name__)
 def generar_analysis(productos, filename):
     """
     Genera un reporte de análisis de productos y lo guarda en un archivo de texto.
+
+    Propósito:
+        - Calcula estadísticas y destaca los mejores productos.
+        - Almacena el análisis en un archivo de texto.
+
+    Parámetros:
+        productos (list[dict]): Lista de productos refinados.
+        filename (str): Nombre del archivo de salida.
+
+    Retorno:
+        None
     """
     if not productos:
         logger.warning("No hay productos para analizar")
@@ -29,10 +40,18 @@ def generar_analysis(productos, filename):
 def analizar_con_ollama_csv(ruta_csv, modelo_ia="llama3"):
     """
     Realiza un análisis avanzado de productos usando Ollama.
-    Lee el archivo CSV indicado, construye prompts y preguntas, envía la consulta a Ollama,
-    y almacena la respuesta en ai_summary.md.
-    Args:
+
+    Propósito:
+        - Lee el archivo CSV de productos.
+        - Construye prompts y preguntas para IA.
+        - Envía la consulta a Ollama y almacena la respuesta en ai_summary.md.
+
+    Parámetros:
         ruta_csv (str): Ruta al archivo CSV de productos.
+        modelo_ia (str): Modelo de IA a utilizar (por defecto 'llama3').
+
+    Retorno:
+        None
     """
     try:
         from ollama import Client

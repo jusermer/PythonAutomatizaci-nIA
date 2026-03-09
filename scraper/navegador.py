@@ -9,8 +9,20 @@ logger = logging.getLogger(__name__)
 
 from selenium.webdriver.chrome.options import Options
 
-def inicializar_driver():
-    """Inicializa el driver de Chrome en modo headless y navega a BASE_URL."""
+def inicializar_driver() -> webdriver.Chrome:
+    """
+    Inicializa el driver de Chrome en modo headless y navega a BASE_URL.
+
+    Propósito:
+        - Configura Selenium para scraping.
+        - Abre el navegador en modo headless.
+
+    Parámetros:
+        None
+
+    Retorno:
+        selenium.webdriver.Chrome: Driver inicializado y posicionado en BASE_URL.
+    """
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
@@ -19,6 +31,18 @@ def inicializar_driver():
     return driver
 
 def esperar_menu(driver):
+    """
+    Espera a que el menú lateral esté disponible en el DOM.
+
+    Propósito:
+        - Sincroniza el scraping esperando la carga del menú.
+
+    Parámetros:
+        driver (selenium.webdriver.Chrome): Driver de Selenium.
+
+    Retorno:
+        None
+    """
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.by import By

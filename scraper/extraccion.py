@@ -1,13 +1,42 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from scraper.navegador import TIEMPO_ESPERA
+
+from typing import List, Any
+def selenium_wait_and_read(driver, selector: str, by: Any = By.CSS_SELECTOR, timeout: int = TIEMPO_ESPERA) -> List[Any]:
+    """
+    Espera a que los elementos estén presentes y luego los lee.
+    Args:
+        driver: Selenium WebDriver
+        selector: Selector CSS o By
+        by: Tipo de selector (por defecto By.CSS_SELECTOR)
+        timeout: Tiempo de espera
+    Returns:
+        Lista de elementos encontrados
+    """
+    wait = WebDriverWait(driver, timeout)
+    wait.until(EC.presence_of_all_elements_located((by, selector)))
+    return driver.find_elements(by, selector)
 from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException
 from scraper.navegador import TIEMPO_ESPERA, BASE_URL
 import logging
 logger = logging.getLogger(__name__)
 
-def parse_paginas(paginas):
-    """Convierte expresiones como '2-5' o '2,3,5' a un conjunto de enteros."""
+from typing import Optional, Set, Union
+def parse_paginas(paginas: Union[str, list, None]) -> Optional[Set[int]]:
+    """
+    Convierte expresiones de páginas a un conjunto de enteros.
+
+    Propósito:
+        - Permite seleccionar páginas específicas para scraping.
+
+    Parámetros:
+        paginas (str | list | None): Expresión de páginas ('2-5', '2,3,5', lista de enteros).
+
+    Retorno:
+        set[int] | None: Conjunto de números de página o None si no hay selección.
+    """
     if paginas is None:
         return None
     if isinstance(paginas, (list, tuple, set)):
@@ -33,8 +62,20 @@ def parse_paginas(paginas):
                 continue
     return paginas_set
 
-def paginacion_url(base_url, page_number):
-    """Construye la URL de una página determinada usando el parámetro 'page'."""
+def paginacion_url(base_url: str, page_number: int) -> str:
+    """
+    Construye la URL de una página determinada usando el parámetro 'page'.
+
+    Propósito:
+        - Genera la URL para navegar a una página específica.
+
+    Parámetros:
+        base_url (str): URL base de la categoría.
+        page_number (int): Número de página.
+
+    Retorno:
+        str: URL de la página solicitada.
+    """
     parsed = urlparse(base_url)
     query = parsed.query
     query_parts = []
@@ -47,21 +88,31 @@ def paginacion_url(base_url, page_number):
     query_str = "&".join(query_parts)
     return parsed._replace(query=query_str).geturl()
 
-def obtener_productos(driver, paginacion=True, paginas=None):
+from selenium.webdriver.chrome.webdriver import WebDriver
+from typing import List, Dict, Union
+def obtener_productos(driver: WebDriver, paginacion: bool = True, paginas: Union[str, list, None] = None) -> List[Dict]:
     """
     Extrae los productos de la categoría actual.
-    Si paginacion=True, recorre toda la paginación automáticamente.
-    Si paginas se pasa, extrae solo las páginas indicadas.
+
+    Propósito:
+        - Realiza scraping de productos en la categoría/subcategoría actual.
+        - Soporta paginación automática y selección manual de páginas.
+
+    Parámetros:
+        driver (selenium.webdriver.Chrome): Driver de Selenium.
+        paginacion (bool): Si True, recorre toda la paginación automáticamente.
+        paginas (str | list | None): Expresión de páginas a extraer.
+
+    Retorno:
+        list[dict]: Lista de productos extraídos.
     """
-    wait = WebDriverWait(driver, TIEMPO_ESPERA)
     productos = []
     def scrape_actual():
         try:
-            wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, "thumbnail")))
+            items = selenium_wait_and_read(driver, "thumbnail", By.CLASS_NAME, TIEMPO_ESPERA)
         except TimeoutException:
             logger.warning("No se encontraron productos en la página")
             return []
-        items = driver.find_elements(By.CLASS_NAME, "thumbnail")
         logger.info(f"URL actual: {driver.current_url}")
         logger.info(f"Cantidad de productos en la página: {len(items)}")
         pagina_productos = []
@@ -140,6 +191,7 @@ def obtener_productos(driver, paginacion=True, paginas=None):
         if not href:
             break
         prev_url = driver.current_url
+        wait = WebDriverWait(driver, TIEMPO_ESPERA)
         try:
             next_link.click()
             wait.until(EC.url_changes(prev_url))
@@ -243,10 +295,8 @@ from urllib.parse import urlparse
 from .navegador import TIEMPO_ESPERA
 
 def obtener_hrefs(driver, css_selector, wait_selector=None):
-    wait = WebDriverWait(driver, TIEMPO_ESPERA)
     wait_selector = wait_selector or css_selector
-    wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, wait_selector)))
-    elementos = driver.find_elements(By.CSS_SELECTOR, css_selector)
+    elementos = selenium_wait_and_read(driver, wait_selector, By.CSS_SELECTOR, TIEMPO_ESPERA)
     urls_finales = []
     for el in elementos:
         href = el.get_attribute("href")

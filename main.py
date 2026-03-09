@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Scraper de productos modular")
     parser.add_argument("--categoria", type=str, default="", help="computers, phones, etc. (filtra por nombre en el href de la categoría)")
     parser.add_argument("--paginas", type=str, default="", help="Expresión de páginas a extraer (ejemplo: '1-10' o '2,3,4')")
